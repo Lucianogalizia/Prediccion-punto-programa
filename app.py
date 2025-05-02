@@ -1,5 +1,8 @@
-from flask import Flask, render_template, request, jsonify
-import pandas as pd, joblib, xgboost as xgb
+ffrom flask import Flask, render_template, request, jsonify
+import pandas as pd
+import numpy as np              
+import joblib
+import xgboost as xgb
 from sklearn.preprocessing import FunctionTransformer
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
