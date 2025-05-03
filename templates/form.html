@@ -46,10 +46,12 @@
       <!-- Pozo -->
       <div class="col-md-4">
         <label class="form-label">Pozo</label>
-        <select id="pozo" name="POZO" class="form-select">
-          <option value="">--elige--</option>
-          {% for p in pozos %}<option>{{p}}</option>{% endfor %}
-        </select>
+        <input id="pozo" name="POZO" class="form-control" list="pozo-list" placeholder="Empieza a escribir...">
+        <datalist id="pozo-list">
+          {% for p in pozos %}
+            <option value="{{ p }}"></option>
+          {% endfor %}
+        </datalist>
       </div>
 
       <!-- Latitude / Longitude -->
