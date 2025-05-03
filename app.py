@@ -10,6 +10,29 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 # — Cargamos modelos/mappings al iniciar —
 model1, mapping1 = joblib.load("models/model1.pkl"), joblib.load("models/mapping1.pkl")
 model2, mapping2 = joblib.load("models/model2.pkl"), joblib.load("models/mapping2.pkl")
+
+# --- Feature lists ---
+FEATURES1 = [
+    "rig_name",
+    "loc_fed_lease_no",
+    "field_name",
+    "Eventos Normalizados",
+    "MANIOBRAS NORMALIZADAS",
+    "GEO_LATITUDE",
+    "GEO_LONGITUDE"
+]
+FEATURES2 = [
+    "rig_name",
+    "loc_fed_lease_no",
+    "field_name",
+    "Eventos Normalizados",
+    "MANIOBRAS NORMALIZADAS",
+    "pickup_weight",
+    "GEO_LATITUDE",
+    "GEO_LONGITUDE"
+]
+
+
 log_tr = FunctionTransformer(np.log1p, inverse_func=np.expm1)
 
 # — Cargamos coordenadas —
