@@ -8,19 +8,23 @@ from sklearn.preprocessing import FunctionTransformer
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
-# --- Carga de modelos y mappings ---
+# --- Load models and original mappings (with spaces in keys) ---
 model1 = joblib.load("models/model1.pkl")
-mapping1 = joblib.load("models/mapping1.pkl")
+orig_mapping1 = joblib.load("models/mapping1.pkl")
 model2 = joblib.load("models/model2.pkl")
-mapping2 = joblib.load("models/mapping2.pkl")
+orig_mapping2 = joblib.load("models/mapping2.pkl")
 
-# --- Listas de features, con los mismos nombres que usan los mappings ---
+# --- Normalize mapping keys to use underscores instead of spaces ---
+mapping1 = {k.replace(" ", "_"): v for k, v in orig_mapping1.items()}
+mapping2 = {k.replace(" ", "_"): v for k, v in orig_mapping2.items()}
+
+# --- Define FEATURES lists with underscore keys matching our mappings ---
 FEATURES1 = [
     "rig_name",
     "loc_fed_lease_no",
     "field_name",
-    "Eventos Normalizados",
-    "MANIOBRAS NORMALIZADAS",
+    "Eventos_Normalizados",
+    "MANIOBRAS_NORMALIZADAS",
     "GEO_LATITUDE",
     "GEO_LONGITUDE"
 ]
@@ -28,17 +32,17 @@ FEATURES2 = [
     "rig_name",
     "loc_fed_lease_no",
     "field_name",
-    "Eventos Normalizados",
-    "MANIOBRAS NORMALIZADAS",
+    "Eventos_Normalizados",
+    "MANIOBRAS_NORMALIZADAS",
     "pickup_weight",
     "GEO_LATITUDE",
     "GEO_LONGITUDE"
 ]
 
-# --- Transformer de target log1p ↔ expm1 ---
+# --- Target log-transformer ---
 log_tr = FunctionTransformer(np.log1p, inverse_func=np.expm1)
 
-# --- Carga del Excel de coordenadas de pozos ---
+# --- Load well coordinates ---
 coords_df = pd.read_excel("data/coordenadas1.xlsx", dtype={"POZO": str})
 for c in ["GEO_LATITUDE", "GEO_LONGITUDE"]:
     coords_df[c] = (
@@ -48,17 +52,18 @@ for c in ["GEO_LATITUDE", "GEO_LONGITUDE"]:
         .astype(float)
     )
 
-# --- Frequency‐encoding para nuevos datos ---
-def apply_fe_new(X_new, mapping):
-    X = X_new.copy()
+# --- Apply frequency encoding to new data ---
+def apply_fe_new(df_new, mapping):
+    df = df_new.copy()
     for col, m in mapping.items():
-        X[col] = X[col].map(m).fillna(0)
-    return X
+        df[col] = df[col].map(m).fillna(0)
+    return df
 
-# --- Predicción de una sola maniobra ---
+# --- Predict a single maneuver's duration ---
 def predict_single(inputs: dict) -> float:
-    mani = inputs["MANIOBRAS NORMALIZADAS"]
-    if mani in mapping2["MANIOBRAS NORMALIZADAS"].index:
+    mani = inputs["MANIOBRAS_NORMALIZADAS"]
+    # Choose model based on whether it comes from dataset2
+    if mani in mapping2["MANIOBRAS_NORMALIZADAS"].index:
         mdl, mp, feats = model2, mapping2, FEATURES2
     else:
         mdl, mp, feats = model1, mapping1, FEATURES1
@@ -67,68 +72,73 @@ def predict_single(inputs: dict) -> float:
     df_enc = apply_fe_new(df, mp)
     dmat = xgb.DMatrix(df_enc)
     pred_t = mdl.predict(dmat)
-    # deshago log1p
-    return float(log_tr.inverse_transform(pred_t.reshape(-1,1))[0,0])
+    return float(log_tr.inverse_transform(pred_t.reshape(-1, 1))[0, 0])
 
-# --- Página principal ---
+# --- Home route ---
 @app.route("/")
 def home():
+    # Build pick lists from mappings and coordinates
+    rig_names   = list(mapping1["rig_name"].index)
+    lease_nos   = list(mapping1["loc_fed_lease_no"].index)
+    field_names = list(mapping1["field_name"].index)
+    eventos     = list(mapping1["Eventos_Normalizados"].index)
+    # unified maneuvers list
+    maniobras   = sorted(set(
+        mapping1["MANIOBRAS_NORMALIZADAS"].index.tolist()
+        + mapping2["MANIOBRAS_NORMALIZADAS"].index.tolist()
+    ))
+    pozos       = coords_df["POZO"].tolist()
+    maniobras_2 = list(mapping2["MANIOBRAS_NORMALIZADAS"].index)
+
     return render_template(
         "form.html",
-        rig_names=list(mapping1["rig_name"].index),
-        lease_nos=list(mapping1["loc_fed_lease_no"].index),
-        field_names=list(mapping1["field_name"].index),
-        eventos=list(mapping1["Eventos Normalizados"].index),
-        maniobras=sorted(
-            set(mapping1["MANIOBRAS NORMALIZADAS"].index.tolist() +
-                mapping2["MANIOBRAS NORMALIZADAS"].index.tolist())
-        ),
-        pozos=coords_df["POZO"].tolist(),
-        maniobras_2=list(mapping2["MANIOBRAS NORMALIZADAS"].index)
+        rig_names=rig_names,
+        lease_nos=lease_nos,
+        field_names=field_names,
+        eventos=eventos,
+        maniobras=maniobras,
+        pozos=pozos,
+        maniobras_2=maniobras_2
     )
 
-# --- Endpoint para autocompletar lat/lon al elegir pozo ---
+# --- Coordinates lookup ---
 @app.route("/coords/<pozo>")
 def coords(pozo):
     row = coords_df[coords_df["POZO"] == pozo].iloc[0]
     return jsonify(lat=row["GEO_LATITUDE"], lon=row["GEO_LONGITUDE"])
 
-# --- Manejo de la predicción de lote ---
+# --- Batch prediction route ---
 @app.route("/predict", methods=["POST"])
 def do_predict():
-    # Extraigo inputs fijos
-    rig = request.form["rig_name"]
+    # Fixed inputs
+    rig   = request.form["rig_name"]
     lease = request.form["loc_fed_lease_no"]
     field = request.form["field_name"]
-    evento = request.form["Eventos_Normalizados"]  # form name tiene guión bajo
+    evento = request.form["Eventos_Normalizados"]  # form uses underscore
     lat = float(request.form["GEO_LATITUDE"])
     lon = float(request.form["GEO_LONGITUDE"])
 
-    # Renombro la clave para que coincida con FEATURES
-    evento_key = evento
-    # Extraigo lista de maniobras seleccionadas
+    # Selected maneuvers (multiple)
     maniobras = request.form.getlist("MANIOBRAS_NORMALIZADAS")
 
-    # Cargo JSON oculto con los pesos por maniobra
+    # Hidden JSON with pick weights per maneuver
     weights = {}
     if "pickup_weights" in request.form:
         weights = json.loads(request.form["pickup_weights"])
 
-    # Preparo resultados individuales y total
     results = []
     total = 0.0
 
     for m in maniobras:
-        # arma el dict de entrada con llaves EXACTAS de FEATURES
         inp = {
-            "rig_name": rig,
-            "loc_fed_lease_no": lease,
-            "field_name": field,
-            "Eventos Normalizados": evento_key,
-            "MANIOBRAS NORMALIZADAS": m,
-            "pickup_weight": float(weights.get(m, 0)),
-            "GEO_LATITUDE": lat,
-            "GEO_LONGITUDE": lon
+            "rig_name":                rig,
+            "loc_fed_lease_no":        lease,
+            "field_name":              field,
+            "Eventos_Normalizados":    evento,
+            "MANIOBRAS_NORMALIZADAS":  m,
+            "pickup_weight":           float(weights.get(m, 0)),
+            "GEO_LATITUDE":            lat,
+            "GEO_LONGITUDE":           lon
         }
         dur = predict_single(inp)
         results.append({"maniobra": m, "duracion": round(dur, 2)})
@@ -138,4 +148,5 @@ def do_predict():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
+
 
