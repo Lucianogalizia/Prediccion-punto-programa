@@ -10,7 +10,7 @@
   <div class="container py-5">
     <h1 class="mb-4 text-primary">Estimador de Duración de Maniobras</h1>
     <form id="pred-form" action="/predict" method="post" class="row g-3">
-      
+
       <!-- Rig name -->
       <div class="col-md-4">
         <label class="form-label">Rig name</label>
@@ -52,43 +52,43 @@
         </select>
       </div>
 
-      <!-- Latitude -->
-      <div class="col-md-4">
+      <!-- Latitude / Longitude -->
+      <div class="col-md-2">
         <label class="form-label">Latitude</label>
         <input id="lat" name="GEO_LATITUDE" type="text" class="form-control" readonly>
       </div>
-
-      <!-- Longitude -->
-      <div class="col-md-4">
+      <div class="col-md-2">
         <label class="form-label">Longitude</label>
         <input id="lon" name="GEO_LONGITUDE" type="text" class="form-control" readonly>
       </div>
 
-      <!-- Maniobras (multiple) -->
+      <!-- Maniobras multiple -->
       <div class="col-md-6">
         <label class="form-label">Maniobras</label>
-        <select id="maniobras" name="MANIOBRAS_NORMALIZADAS" class="form-select" multiple size="5">
-          {% for m in maniobras %}
-            <option>{{m}}</option>
-          {% endfor %}
+        <select id="maniobras" name="MANIOBRAS_NORMALIZADAS" class="form-select" multiple size="6">
+          {% for m in maniobras %}<option>{{m}}</option>{% endfor %}
         </select>
       </div>
 
-      <!-- Contenedor de inputs de cantidad -->
+      <!-- Aquí inyectamos N campos de cantidad -->
       <div id="cantidades" class="col-md-6">
-        <label class="form-label">Cantidad por Maniobra (solo Dataset 2)</label>
-        <!-- aquí inyectamos dinámicamente FloatText-equivalentes -->
+        <label class="form-label">Pickup weight por maniobra (solo Dataset 2)</label>
+        <!-- dinámicamente se crearán FloatInputs aquí -->
       </div>
 
-      <!-- Botón -->
       <div class="col-12">
         <button type="submit" class="btn btn-primary">Predecir lote</button>
       </div>
     </form>
   </div>
 
+  <!-- Exponemos la lista de maniobras del dataset2 para el JS -->
+  <script>
+    const maniobrasDataset2 = {{ maniobras_2|tojson }};
+  </script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="{{ url_for('static',filename='js/main.js') }}"></script>
 </body>
 </html>
+
 
