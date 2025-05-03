@@ -9,15 +9,41 @@
 <body class="bg-light">
   <div class="container py-5">
     <h1 class="mb-4 text-primary">Estimador de Duración de Maniobras</h1>
-    <form action="/predict" method="post" class="row g-3">
-      <!-- rig_name, lease_no, field_name, eventos -->
+    <form id="pred-form" action="/predict" method="post" class="row g-3">
+      
+      <!-- Rig name -->
       <div class="col-md-4">
         <label class="form-label">Rig name</label>
         <select name="rig_name" class="form-select">
           {% for r in rig_names %}<option>{{r}}</option>{% endfor %}
         </select>
       </div>
-      <!-- repetir para lease_no, field_name, eventos -->
+
+      <!-- Lease no -->
+      <div class="col-md-4">
+        <label class="form-label">Lease no</label>
+        <select name="loc_fed_lease_no" class="form-select">
+          {% for l in lease_nos %}<option>{{l}}</option>{% endfor %}
+        </select>
+      </div>
+
+      <!-- Field name -->
+      <div class="col-md-4">
+        <label class="form-label">Field name</label>
+        <select name="field_name" class="form-select">
+          {% for f in field_names %}<option>{{f}}</option>{% endfor %}
+        </select>
+      </div>
+
+      <!-- Eventos -->
+      <div class="col-md-4">
+        <label class="form-label">Eventos Normalizados</label>
+        <select name="Eventos_Normalizados" class="form-select">
+          {% for e in eventos %}<option>{{e}}</option>{% endfor %}
+        </select>
+      </div>
+
+      <!-- Pozo -->
       <div class="col-md-4">
         <label class="form-label">Pozo</label>
         <select id="pozo" name="POZO" class="form-select">
@@ -25,32 +51,44 @@
           {% for p in pozos %}<option>{{p}}</option>{% endfor %}
         </select>
       </div>
+
+      <!-- Latitude -->
       <div class="col-md-4">
         <label class="form-label">Latitude</label>
-        <input id="lat" name="GEO_LATITUDE" type="text" class="form-control">
+        <input id="lat" name="GEO_LATITUDE" type="text" class="form-control" readonly>
       </div>
+
+      <!-- Longitude -->
       <div class="col-md-4">
         <label class="form-label">Longitude</label>
-        <input id="lon" name="GEO_LONGITUDE" type="text" class="form-control">
+        <input id="lon" name="GEO_LONGITUDE" type="text" class="form-control" readonly>
       </div>
-      <!-- maniobras y pickup -->
-      <div class="col-md-4">
+
+      <!-- Maniobras (multiple) -->
+      <div class="col-md-6">
         <label class="form-label">Maniobras</label>
-        <select name="MANIOBRAS_NORMALIZADAS" class="form-select">
-          {% for m in maniobras %}<option>{{m}}</option>{% endfor %}
+        <select id="maniobras" name="MANIOBRAS_NORMALIZADAS" class="form-select" multiple size="5">
+          {% for m in maniobras %}
+            <option>{{m}}</option>
+          {% endfor %}
         </select>
       </div>
-      <div class="col-md-4">
-        <label class="form-label">Pickup weight</label>
-        <input id="pickup" name="pickup_weight" type="number" class="form-control" disabled>
+
+      <!-- Contenedor de inputs de cantidad -->
+      <div id="cantidades" class="col-md-6">
+        <label class="form-label">Cantidad por Maniobra (solo Dataset 2)</label>
+        <!-- aquí inyectamos dinámicamente FloatText-equivalentes -->
       </div>
+
+      <!-- Botón -->
       <div class="col-12">
-        <button class="btn btn-primary">Predecir</button>
+        <button type="submit" class="btn btn-primary">Predecir lote</button>
       </div>
     </form>
-    <div id="result"></div>
   </div>
+
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="{{ url_for('static',filename='js/main.js') }}"></script>
 </body>
 </html>
+
