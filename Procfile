@@ -1,1 +1,2 @@
-web:    gunicorn app:app --timeout 120 --workers 1
+web: gunicorn app:app --bind 0.0.0.0:$PORT --capture-output --log-level debug
+
