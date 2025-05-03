@@ -46,6 +46,8 @@ def home():
         maniobras=sorted(set(mapping1["MANIOBRAS NORMALIZADAS"].index.tolist()+
                              mapping2["MANIOBRAS NORMALIZADAS"].index.tolist())),
         pozos=coords_df["POZO"].tolist()
+        # <-- AÑADE ESTA LÍNEA -->
+        maniobras_2=list(mapping2["MANIOBRAS NORMALIZADAS"].index)                   
     )
 
 @app.route("/coords/<pozo>")
