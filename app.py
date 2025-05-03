@@ -45,7 +45,7 @@ def home():
         eventos=list(mapping1["Eventos Normalizados"].index),
         maniobras=sorted(set(mapping1["MANIOBRAS NORMALIZADAS"].index.tolist()+
                              mapping2["MANIOBRAS NORMALIZADAS"].index.tolist())),
-        pozos=coords_df["POZO"].tolist()
+        pozos=coords_df["POZO"].tolist(),
         # <-- AÑADE ESTA LÍNEA -->
         maniobras_2=list(mapping2["MANIOBRAS NORMALIZADAS"].index)                   
     )
