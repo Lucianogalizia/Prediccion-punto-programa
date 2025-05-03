@@ -1,13 +1,18 @@
 $(function(){
-  // 1) Autocompletar lat/lon
-  $("#pozo").change(function(){
-    let pozo = $(this).val();
-    if(!pozo) return;
-    $.getJSON("/coords/"+pozo, function(d){
-      $("#lat").val(d.lat);
-      $("#lon").val(d.lon);
-    });
+  $("#pozo").on("input", function(){
+  const p = $(this).val();
+  if(!p) return;
+  // Hacemos la petición solo si el valor coincide con una opción válida
+  // (podrías añadir aquí validación extra si quieres)
+  $.getJSON("/coords/"+encodeURIComponent(p), function(d){
+    $("#lat").val(d.lat);
+    $("#lon").val(d.lon);
+  }).fail(function(){
+    // si el pozo no existe, limpiamos lat/lon
+    $("#lat").val("");
+    $("#lon").val("");
   });
+});
 
   // 2) Al cambiar selección de maniobras
   $("#maniobras").change(function(){
